@@ -2,67 +2,79 @@
 
 -- This file contains the complete SQL code to create the necessary tables
 -- and populate them with mock data for the challenges.
-
------------------------------------------------------
--- 1. SCHEMA CREATION
+-- 1. DDL: SCHEMA CREATION [cite: 15]
 -----------------------------------------------------
 
--- 1. Customers Table
-CREATE TABLE Customers (
-    customer_id INTEGER PRIMARY KEY,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    email VARCHAR(100),
-    registration_date DATE
+-- Employees for Self-Joins and Security [cite: 67, 98]
+CREATE TABLE Employees (
+    employee_id INTEGER PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    manager_id INTEGER REFERENCES Employees(employee_id), -- For Self-Joins
+    salary DECIMAL(10,2) CHECK (salary > 0), -- Data Constraints [cite: 47, 53]
+    hire_date DATE
 );
 
--- 2. Products Table
+-- Categories with Unique Constraints [cite: 44]
+CREATE TABLE Categories (
+    category_id INTEGER PRIMARY KEY,
+    category_name VARCHAR(50) UNIQUE NOT NULL
+);
+
+-- Products [cite: 24, 33, 39]
 CREATE TABLE Products (
     product_id INTEGER PRIMARY KEY,
-    product_name VARCHAR(100),
-    category VARCHAR(50),
-    price DECIMAL(10, 2)
+    product_name VARCHAR(100) NOT NULL,
+    category_id INTEGER REFERENCES Categories(category_id),
+    price DECIMAL(10, 2),
+    stock_quantity INTEGER DEFAULT 0
 );
 
--- 3. Orders Table
+-- Customers and Security Tracking [cite: 101, 105]
+CREATE TABLE Customers (
+    customer_id INTEGER PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP [cite: 82]
+);
+
+-- Coupons for Conditional Logic [cite: 70, 80]
+CREATE TABLE Coupons (
+    coupon_id VARCHAR(10) PRIMARY KEY,
+    discount_pct INTEGER,
+    expiry_date DATE
+);
+
+-- Orders & Items [cite: 54]
 CREATE TABLE Orders (
     order_id INTEGER PRIMARY KEY,
     customer_id INTEGER REFERENCES Customers(customer_id),
-    product_id INTEGER REFERENCES Products(product_id),
     order_date DATE,
-    quantity INTEGER,
-    order_total DECIMAL(10, 2)
+    coupon_id VARCHAR(10) REFERENCES Coupons(coupon_id)
 );
 
+CREATE TABLE Order_Items (
+    item_id INTEGER PRIMARY KEY,
+    order_id INTEGER REFERENCES Orders(order_id),
+    product_id INTEGER REFERENCES Products(product_id),
+    quantity INTEGER,
+    unit_price DECIMAL(10,2)
+);
+
+-- Product Reviews for String/Advanced Analysis [cite: 61, 73]
+CREATE TABLE Reviews (
+    review_id INTEGER PRIMARY KEY,
+    product_id INTEGER REFERENCES Products(product_id),
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT
+);
+
+-- 2. DML: MOCK DATA INSERTION [cite: 22]
 -----------------------------------------------------
--- 2. MOCK DATA INSERTION
------------------------------------------------------
-
--- Mock Data for Customers
-INSERT INTO Customers (customer_id, first_name, last_name, email, registration_date) VALUES
-(101, 'Alice', 'Smith', 'alice@example.com', '2023-01-15'),
-(102, 'Bob', 'Johnson', 'bob@example.com', '2023-02-20'),
-(103, 'Charlie', 'Brown', 'charlie@example.com', '2023-03-01'),
-(104, 'Diana', 'Prince', 'diana@example.com', '2023-04-10'),
-(105, 'Evan', 'Wright', 'evan@example.com', '2023-05-25');
-
--- Mock Data for Products
-INSERT INTO Products (product_id, product_name, category, price) VALUES
-(1, 'Laptop Pro X', 'Electronics', 1200.00),
-(2, 'Mechanical Keyboard', 'Accessories', 150.00),
-(3, 'Wireless Mouse', 'Accessories', 50.00),
-(4, 'Gaming Chair Z', 'Furniture', 350.00),
-(5, '4K Monitor', 'Electronics', 450.00);
-
--- Mock Data for Orders (10 total orders)
-INSERT INTO Orders (order_id, customer_id, product_id, order_date, quantity, order_total) VALUES
-(1001, 101, 1, '2023-01-20', 1, 1200.00), -- Alice: Laptop (1st order)
-(1002, 102, 2, '2023-02-25', 2, 300.00),  -- Bob: Keyboard (1st order)
-(1003, 101, 3, '2023-03-05', 1, 50.00),   -- Alice: Mouse (2nd order)
-(1004, 103, 4, '2023-03-10', 1, 350.00),  -- Charlie: Chair (1st order)
-(1005, 104, 5, '2023-04-15', 1, 450.00),  -- Diana: Monitor (1st order)
-(1006, 102, 3, '2023-04-20', 3, 150.00),  -- Bob: Mouse (2nd order)
-(1007, 105, 1, '2023-06-01', 1, 1200.00), -- Evan: Laptop (1st order)
-(1008, 101, 5, '2023-06-10', 2, 900.00),  -- Alice: Monitor (3rd order)
-(1009, 103, 2, '2023-07-01', 1, 150.00),  -- Charlie: Keyboard (2nd order)
-(1010, 102, 4, '2023-07-15', 1, 350.00);  -- Bob: Chair (3rd order)
+INSERT INTO Categories VALUES (1, 'Electronics'), (2, 'Accessories'), (3, 'Home');
+INSERT INTO Employees VALUES (1, 'Lead', 'Manager', NULL, 95000, '2020-01-01'), (2, 'Staff', 'One', 1, 60000, '2021-05-10');
+INSERT INTO Products VALUES (101, 'Laptop X', 1, 1200, 50), (102, 'Gaming Mouse', 2, 80, 200), (103, 'Old Keyboard', 2, 45, 10);
+INSERT INTO Customers VALUES (1, 'alice@test.com', '2023-01-15 10:00:00'), (2, 'bob@demo.com', '2023-03-20 14:30:00');
+INSERT INTO Coupons VALUES ('WINTER20', 20, '2025-12-31');
+INSERT INTO Orders VALUES (501, 1, '2023-05-01', 'WINTER20'), (502, 2, '2023-06-15', NULL);
+INSERT INTO Order_Items VALUES (1, 501, 101, 1, 1200), (2, 502, 102, 2, 80);
+INSERT INTO Reviews VALUES (1, 101, 5, 'Best purchase ever!'), (2, 102, 3, 'Average quality.');
